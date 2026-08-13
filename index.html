@@ -44,6 +44,8 @@ window.__DECK_DATA__={"version":1,"deck":{"title":"枢途科技数据产品优�
   const params=new URLSearchParams(location.search), exporting=params.get('export')==='1', clientMode=params.get('client')==='1'||location.pathname.endsWith('/presentation-client.html')||location.pathname.endsWith('/index.html')||location.pathname.endsWith('/');
   let index=Math.max(0,Math.min(data.slides.length-1,Number(params.get('slide')||0))), drawing=false, last=null;
   const dw=Number(data.deck?.width||1920), dh=Number(data.deck?.height||1080);
+  const cdnBase='https://cdn.jsdelivr.net/gh/Liang-MiraclePlus/synapath-data@5db8a9d5b58cfa252f018603bdd4ad1c05c3a051/';
+  const assetUrl=src=>/^(assets\/video|assets\/poster)\//.test(src||'')?cdnBase+src:src;
   frame.style.width=dw+'px'; frame.style.height=dh+'px'; canvas.width=dw; canvas.height=dh;
   document.querySelector('#deck-title').textContent=data.deck?.title||'Presentation';
   if(exporting) document.body.classList.add('export'); if(clientMode) document.body.classList.add('client');
@@ -52,10 +54,11 @@ window.__DECK_DATA__={"version":1,"deck":{"title":"枢途科技数据产品优�
     Object.assign(box.style,{left:media.x+'px',top:media.y+'px',width:media.w+'px',height:media.h+'px',zIndex:String(media.z||10)});
     const fit=media.fit||'contain';
     if(media.type==='video'&&!exporting){
-      const el=document.createElement('video'); el.src=media.src; if(media.poster)el.poster=media.poster;
+      const el=document.createElement('video'); el.src=assetUrl(media.src); if(media.poster)el.poster=assetUrl(media.poster);
       el.controls=media.controls!==false; el.autoplay=false; el.muted=true; el.loop=!!media.loop; el.playsInline=true; el.preload='metadata'; el.style.objectFit=fit; box.append(el);
+      el.addEventListener('error',()=>{if(el.dataset.fallback)return;el.dataset.fallback='1';el.src=media.src;if(media.poster)el.poster=media.poster;el.load()},{once:true});
     }else if(media.type==='image'||media.poster){
-      const el=document.createElement('img'); el.src=media.type==='image'?media.src:media.poster; el.alt=media.alt||''; el.style.objectFit=fit; box.append(el);
+      const el=document.createElement('img'), original=media.type==='image'?media.src:media.poster; el.src=assetUrl(original); el.alt=media.alt||''; el.style.objectFit=fit; el.addEventListener('error',()=>{if(el.dataset.fallback)return;el.dataset.fallback='1';el.src=original},{once:true}); box.append(el);
     }else{
       const el=document.createElement('div'); el.className='media-placeholder'; box.append(el);
     }
